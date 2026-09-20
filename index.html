@@ -721,5 +721,107 @@ infoModal.addEventListener('click', (e) => {
 animate();
 </script>
 
+<!-- hide-ui-v2 -->
+<style>
+body.hide-all-ui .control-panel,
+body.hide-all-ui .toggle-btn,
+body.hide-all-ui .bottom-links,
+body.hide-all-ui .bottom-expand,
+body.hide-all-ui .info-modal {
+  display: none !important;
+}
+#hide-ui-hotzone {
+  position: fixed; top: 0; right: 0;
+  width: 28px; height: 28px;
+  z-index: 9998; opacity: 0;
+  display: none;
+}
+body.hide-all-ui #hide-ui-hotzone { display: block; }
+#hide-ui-label {
+  position: fixed; bottom: 34px; left: 12px;
+  color: #bbb;
+  font-size: 12px;
+  font-family: -apple-system, "PingFang SC", sans-serif;
+  cursor: pointer; z-index: 9999;
+  user-select: none;
+  transition: color 0.2s, background 0.2s;
+  background: rgba(0,0,0,0.4);
+  border: none; padding: 5px 10px;
+  border-radius: 4px;
+  outline: none;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+#hide-ui-label:hover { color: #6366f1; background: rgba(99,102,241,0.2); }
+body.hide-all-ui #hide-ui-label { display: none; }
+#hide-ui-toast {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(18,18,26,0.92); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: #fff; padding: 14px 22px; border-radius: 10px;
+  font-size: 14px; font-family: -apple-system, "PingFang SC", sans-serif;
+  z-index: 9999; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; border: 1px solid rgba(99,102,241,0.4);
+  max-width: 80vw; text-align: center;
+}
+#hide-ui-toast.show { opacity: 1; }
+</style>
+<div id="hide-ui-hotzone"></div>
+<button id="hide-ui-label">隐藏控制台</button>
+<div id="hide-ui-toast"></div>
+<script>
+(function(){
+  var STORE = 'laohei-hide-ui';
+  var hk = document.getElementById('hide-ui-hotzone');
+  var label = document.getElementById('hide-ui-label');
+  var toast = document.getElementById('hide-ui-toast');
+  var toastTimer = null;
+  function applyHidden(hidden){
+    document.body.classList.toggle('hide-all-ui', hidden);
+    if(hk){ hk.style.pointerEvents = 'none'; if(hidden) setTimeout(function(){ hk.style.pointerEvents = 'auto'; }, 400); }
+  }
+  function showToast(msg){
+    if(!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2200);
+  }
+  function hide(){
+    applyHidden(true);
+    try{ localStorage.setItem(STORE, '1'); }catch(e){}
+    showToast('UI 已隐藏 · 再按 Ctrl+Shift+` 或鼠标移到右上角唤回');
+  }
+  function show(){
+    applyHidden(false);
+    try{ localStorage.removeItem(STORE); }catch(e){}
+    showToast('UI 已显示');
+  }
+  function toggle(){
+    if(document.body.classList.contains('hide-all-ui')) show();
+    else hide();
+  }
+  try{
+    if(localStorage.getItem(STORE) === '1') applyHidden(true);
+  }catch(e){}
+  document.addEventListener('keydown', function(e){
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
+    if((e.ctrlKey||e.metaKey) && e.shiftKey && (e.key==='`' || e.key==='~')){
+      e.preventDefault();
+      toggle();
+    }
+  });
+  if(hk){
+    hk.addEventListener('mouseenter', function(){
+      if(document.body.classList.contains('hide-all-ui')) show();
+    });
+  }
+  if(label){
+    label.addEventListener('click', function(){
+      if(!document.body.classList.contains('hide-all-ui')) hide();
+    });
+  }
+})();
+</script>
+<!-- /hide-ui-v2 -->
 </body>
 </html>
