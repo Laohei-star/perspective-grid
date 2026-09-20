@@ -240,6 +240,15 @@
   .color-pick input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
   .color-pick input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
 
+  /* 文字输入控件 */
+  .text-input { width: 100%; padding: 8px 10px; background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 5px; color: #e8ecff; font-size: 13px; outline: none; font-family: inherit; }
+  .text-input:focus { border-color: #6366f1; }
+  textarea.text-input { resize: vertical; min-height: 50px; }
+  .font-file-btn { display: inline-block; padding: 6px 10px; background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 5px; color: #aaa; font-size: 11px; cursor: pointer; margin-top: 4px; }
+  .font-file-btn:hover { border-color: #6366f1; color: #ccc; }
+  .checkbox-row { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #aaa; }
+  .checkbox-row input[type="checkbox"] { accent-color: #6366f1; width: 14px; height: 14px; }
+
   
   .bottom-links {
     position: fixed;
@@ -467,6 +476,25 @@
 
   <div class="divider"></div>
 
+  <div class="param-group">
+    <div class="param-label" style="display:flex;justify-content:space-between;align-items:center">
+      <span>文字</span>
+      <label class="checkbox-row"><input type="checkbox" id="writeText" checked> 写文字</label>
+    </div>
+    <textarea class="text-input" id="textInput" rows="2">HEIP</textarea>
+    <div class="param-label"><span>字体名</span></div>
+    <input type="text" class="text-input" id="fontInput" value="sans-serif" placeholder="如 楷体 / 仿宋 / Arial">
+    <label class="font-file-btn" for="fontFile">＋ 加载本地字体 .ttf/.otf</label>
+    <input type="file" id="fontFile" accept=".ttf,.otf" style="display:none">
+    <div class="param-item">
+      <div class="param-label"><span>字号</span><span class="param-value" id="val-textSize">120</span></div>
+      <input type="range" id="textSize" min="20" max="400" value="120" step="1">
+    </div>
+    <div class="color-row">
+      <div class="color-pick"><label>字色</label><input type="color" id="textColor" value="#ffffff"></div>
+    </div>
+  </div>
+
   <button class="save-btn" id="saveBtn">保存图片</button>
 </div>
 
@@ -506,6 +534,11 @@ const params = {
   speed: 1,
   bgColor: '#000000',
   lineColor: '#ffffff',
+  writeText: true,
+  text: 'HEIP',
+  fontName: 'sans-serif',
+  textSize: 120,
+  textColor: '#ffffff',
 };
 
 const canvas = document.getElementById('canvas');
@@ -520,7 +553,7 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 function renderFrame(targetCtx, w, h, frame) {
-  const { vanishY, gridRows, rayCount, fov, lineAlpha, lineWidth, speed, bgColor, lineColor } = params;
+  const { vanishY, gridRows, rayCount, fov, lineAlpha, lineWidth, speed, bgColor, lineColor, writeText, text, fontName, textSize, textColor } = params;
 
   
   const br = parseInt(bgColor.slice(1,3),16);
@@ -601,6 +634,17 @@ function renderFrame(targetCtx, w, h, frame) {
   grad.addColorStop(1, `rgba(${br},${bg},${bb},0)`);
   targetCtx.fillStyle = grad;
   targetCtx.fillRect(0, 0, w, vy + maskH);
+
+  // 画文字（居中，在遮罩之后确保不被盖住）
+  if (writeText && text) {
+    targetCtx.save();
+    targetCtx.fillStyle = textColor;
+    targetCtx.font = `bold ${textSize}px ${fontName}, sans-serif`;
+    targetCtx.textAlign = 'center';
+    targetCtx.textBaseline = 'middle';
+    targetCtx.fillText(text, w / 2, h / 2);
+    targetCtx.restore();
+  }
 }
 
 function animate() {
@@ -657,6 +701,31 @@ document.querySelectorAll('.preset-btn').forEach(btn => {
       else valEl.textContent = params[id].toFixed(0);
     });
   });
+});
+
+// ── 文字控件 ──
+document.getElementById('writeText').addEventListener('change', (e) => { params.writeText = e.target.checked; });
+document.getElementById('textInput').addEventListener('input', (e) => { params.text = e.target.value; });
+document.getElementById('fontInput').addEventListener('input', (e) => { params.fontName = e.target.value; });
+document.getElementById('textSize').addEventListener('input', (e) => {
+  params.textSize = parseInt(e.target.value);
+  document.getElementById('val-textSize').textContent = params.textSize;
+});
+document.getElementById('textColor').addEventListener('input', (e) => { params.textColor = e.target.value; });
+document.getElementById('fontFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const ff = new FontFace('customFont', ev.target.result);
+    ff.load().then(() => {
+      document.fonts.add(ff);
+      params.fontName = 'customFont';
+      document.getElementById('fontInput').value = 'customFont';
+    }).catch(err => console.error('字体加载失败', err));
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
 });
 
 document.getElementById('saveBtn').addEventListener('click', async () => {
